@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mira Assistant</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <h1>Mira</h1>
+        <p>Voice-first AI assistant</p>
+      </div>
+      <button id="newChatBtn" class="secondary-btn">+ New Chat</button>
+      <div class="session-header">Recent Sessions</div>
+      <div id="sessionList" class="session-list"></div>
+    </aside>
+
+    <main class="main-panel">
+      <section class="hero-panel glass">
+        <div class="orb-section">
+          <div id="orb" class="orb idle">
+            <div class="ring ring-1"></div>
+            <div class="ring ring-2"></div>
+            <div class="ring ring-3"></div>
+            <div class="core">MIRA</div>
+          </div>
+          <p id="assistantState" class="assistant-state">Idle</p>
+        </div>
+
+        <div class="response-section">
+          <div class="panel-block">
+            <h2>You said</h2>
+            <div id="transcript" class="text-box">Waiting for input...</div>
+          </div>
+
+          <div class="panel-block">
+            <h2>Mira says</h2>
+            <div id="response" class="text-box">Hello. I'm Mira. How can I help you today?</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls glass">
+        <button id="listenBtn">🎤 Listen</button>
+        <button id="stopSpeakBtn">🔇 Stop Voice</button>
+      </section>
+
+      <section class="composer glass">
+        <input id="messageInput" type="text" placeholder="Type a message to Mira..." />
+        <button id="sendBtn">Send</button>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
