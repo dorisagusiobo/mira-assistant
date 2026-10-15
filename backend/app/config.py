@@ -10,6 +10,8 @@ class Settings(BaseSettings):
 
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4.1-mini"
+    # Optional: any OpenAI-compatible endpoint, e.g. https://openrouter.ai/api/v1
+    OPENAI_BASE_URL: str = ""
 
     DATABASE_URL: str = "sqlite:///./mira.db"
     ALLOW_ORIGINS: str = "http://127.0.0.1:5500,http://localhost:5500,http://127.0.0.1:8000"

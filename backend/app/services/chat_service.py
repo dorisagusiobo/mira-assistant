@@ -35,23 +35,20 @@ def get_messages_for_llm(db: Session, session_id: int) -> list[dict]:
 
 def handle_chat(db: Session, session_id: int | None, user_text: str) -> dict:
     user_text = user_text.strip()
+    session = get_session(db, session_id) if session_id is not None else None
+    history = get_messages_for_llm(db, session.id) if session else []
 
-    if session_id is None:
+    # Ask the AI first and save only once it answers, so a failed request
+    # never leaves an unanswered or duplicated message in the conversation.
+    assistant_reply = generate_reply([*history, {"role": "user", "content": user_text}])
+
+    if session is None:
         session = create_session(db, title=user_text[:40] or "New Chat")
-        session_id = session.id
-    else:
-        session = get_session(db, session_id)
-        if session is None:
-            session = create_session(db, title=user_text[:40] or "New Chat")
-            session_id = session.id
-
-    add_message(db, session_id, "user", user_text)
-    history = get_messages_for_llm(db, session_id)
-    assistant_reply = generate_reply(history)
-    add_message(db, session_id, "assistant", assistant_reply)
+    add_message(db, session.id, "user", user_text)
+    add_message(db, session.id, "assistant", assistant_reply)
 
     return {
-        "session_id": session_id,
+        "session_id": session.id,
         "user_message": user_text,
         "assistant_message": assistant_reply,
     }

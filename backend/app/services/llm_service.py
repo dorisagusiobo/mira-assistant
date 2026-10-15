@@ -1,8 +1,16 @@
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 from ..config import settings
 from .prompt_service import load_prompt
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
+client = (
+    OpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL or None, timeout=30)
+    if settings.OPENAI_API_KEY
+    else None
+)
+
+
+class LLMUnavailableError(Exception):
+    """The AI provider could not return a usable reply."""
 
 
 def generate_reply(conversation_history: list[dict]) -> str:
@@ -21,10 +29,16 @@ def generate_reply(conversation_history: list[dict]) -> str:
         *conversation_history,
     ]
 
-    response = client.chat.completions.create(
-        model=settings.OPENAI_MODEL,
-        messages=messages,
-        temperature=0.7,
-    )
+    try:
+        response = client.chat.completions.create(
+            model=settings.OPENAI_MODEL,
+            messages=messages,
+            temperature=0.7,
+        )
+    except OpenAIError as error:
+        raise LLMUnavailableError(str(error)) from error
 
-    return response.choices[0].message.content.strip()
+    content = response.choices[0].message.content if response.choices else None
+    if not content or not content.strip():
+        raise LLMUnavailableError("The AI provider returned an empty reply")
+    return content.strip()

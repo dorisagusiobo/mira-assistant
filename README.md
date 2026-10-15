@@ -1,222 +1,92 @@
 # Mira Assistant
 
-Mira is a Sophia-style, voice-first AI assistant web app with a plain HTML/CSS/JavaScript frontend and a FastAPI backend.
+**A voice-first AI assistant you can talk to in the browser.**
 
-## What is included
+Mira listens when you speak, answers out loud, and keeps your conversations so you can pick them back up later. An animated orb shows what she is doing: listening, thinking, speaking, or idle. You can also type.
 
-- Animated orb interface
-- Voice input using browser speech recognition
-- Voice output using browser speech synthesis
-- Chat sessions stored in SQLite
-- Memory endpoints for future personalization
-- OpenAI-compatible backend integration
-- Complete local development structure
+## Features
 
-## Project structure
+- **Talk or type.** Speech recognition turns your voice into a message; speech synthesis reads Mira's reply aloud. A **Stop Voice** button cuts her off at any time.
+- **Animated status orb.** The orb changes color and motion for each state (idle, listening, recognizing, thinking, speaking, error), so you always know what is happening without reading anything.
+- **Saved conversations.** Every chat is stored in SQLite and listed in the sidebar. Click one to continue it; Mira receives the full history.
+- **Works with OpenAI or OpenRouter.** Any OpenAI-compatible endpoint works through one setting.
+- **Memory store.** A small key-value API for facts about the user, ready for personalization.
 
-```text
-mira-assistant/
-├── backend/
-│   ├── app/
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   ├── dependencies.py
-│   │   ├── main.py
-│   │   ├── models.py
-│   │   ├── schemas.py
-│   │   ├── prompts/
-│   │   ├── routers/
-│   │   ├── services/
-│   │   └── utils/
-│   ├── .env.example
-│   ├── requirements.txt
-│   └── run.py
-├── frontend/
-│   ├── app.js
-│   ├── index.html
-│   └── styles.css
-└── README.md
+## Design decisions
+
+- **Written to be heard.** Replies are plain spoken text with no Markdown, because symbols like `**` or tables are meaningless, or read out literally, when a reply is spoken.
+- **Honest about limits.** Mira can only talk. She is instructed never to claim she set a reminder, checked a calendar, or took any action, and to suggest how you can do it yourself instead.
+- **Failures don't corrupt the conversation.** Mira asks the AI first and saves your message and her reply together only when she gets an answer. If the AI is unavailable you see a clear message, and retrying never leaves duplicate or unanswered messages behind.
+- **Calm without a key.** With no API key, Mira still runs and explains that she is in demo mode, so the interface can be tried right away.
+
+## How it works
+
+```
+Browser (HTML, CSS, JavaScript)
+  speech recognition --> message --+
+                                   v
+FastAPI backend --> chat service --> OpenAI-compatible LLM (OpenAI or OpenRouter)
+       |                 |
+       |                 +--> SQLite: sessions, messages, memory
+       +--> serves the web app at /
+                                   |
+  speech synthesis <-- reply <-----+
 ```
 
-## Full environment setup
+| Layer | Technology |
+|---|---|
+| Frontend | Plain HTML, CSS and JavaScript; Web Speech API for voice in and out |
+| Backend | Python, FastAPI, SQLAlchemy, Pydantic |
+| AI | OpenAI Python SDK against OpenAI or OpenRouter |
+| Data | SQLite |
+| Tests | pytest (10 tests, AI faked so they cost nothing) |
 
-### 1. Install prerequisites
+## Run it locally
 
-Install these tools first:
-
-- Python 3.11 or 3.12
-- Git
-- VS Code or Cursor
-- Optional: Node.js LTS
-
-Check installation:
-
-```bash
-python3 --version
-git --version
-node --version
-```
-
-### 2. Open the project in VS Code or Cursor
-
-You can open the generated folder manually:
+You need Python 3.11+ and an API key from [OpenAI](https://platform.openai.com/api-keys) or [OpenRouter](https://openrouter.ai/keys).
 
 ```bash
-code /path/to/mira-assistant
-```
-
-Or in Cursor:
-
-```bash
-cursor /path/to/mira-assistant
-```
-
-### 3. Set up the backend virtual environment
-
-```bash
-cd mira-assistant/backend
+cd backend
 python3 -m venv .venv
-source .venv/bin/activate
-```
-
-On Windows PowerShell:
-
-```powershell
-cd mira-assistant/backend
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-### 4. Install backend dependencies
-
-```bash
+source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
-
-### 5. Create your environment file
-
-Copy the example file:
-
-```bash
-cp .env.example .env
-```
-
-Then edit `.env` and add your real API key:
-
-```env
-OPENAI_API_KEY=your_real_key_here
-```
-
-### 6. Start the backend
-
-```bash
+cp .env.example .env               # then add your key; see the file for OpenRouter
 python run.py
 ```
 
-API URLs:
+Open http://127.0.0.1:8000. The backend serves the web app, so there is only one thing to run. API docs are at http://127.0.0.1:8000/docs.
 
-- Backend root: `http://127.0.0.1:8000`
-- Docs: `http://127.0.0.1:8000/docs`
-- Health: `http://127.0.0.1:8000/health`
+Voice input needs a browser with the Web Speech API (Chrome or Edge). Typing works everywhere.
 
-### 7. Start the frontend
-
-Open another terminal:
+## Run the tests
 
 ```bash
-cd mira-assistant/frontend
-python3 -m http.server 5500
+cd backend
+pip install -r requirements-dev.txt
+python -m pytest -q
 ```
 
-Then open:
+## API
 
-```text
-http://127.0.0.1:5500
-```
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/chat` | Send a message; starts a session if none is given |
+| `GET` | `/api/sessions` | List conversations, newest first |
+| `GET` | `/api/sessions/{id}` | One conversation with its messages |
+| `POST` / `GET` | `/api/memory` | Save or list key-value memories |
+| `GET` | `/health` | Health check |
 
-## How the backend works
+## Limitations
 
-### `config.py`
-Loads environment variables like API keys, ports, database URL, and allowed CORS origins.
+- Built for local, single-user use: there is no sign-in, so do not expose it to the internet as is.
+- The memory store is not yet fed into conversations.
 
-### `database.py`
-Creates the SQLAlchemy engine and session factory.
+## Roadmap
 
-### `models.py`
-Defines three tables:
+- Use saved memories to personalize replies
+- Stream replies so Mira starts speaking sooner
+- Sign-in, so it can be hosted for more than one person
 
-- `ChatSession`
-- `ChatMessage`
-- `UserMemory`
+---
 
-### `schemas.py`
-Defines request and response models for FastAPI.
-
-### `services/llm_service.py`
-Loads the prompt files, connects to OpenAI, sends the conversation history, and returns Mira's response.
-
-### `services/chat_service.py`
-Handles the full chat flow:
-
-1. creates a session if needed
-2. stores the user message
-3. pulls the conversation history
-4. calls the LLM
-5. stores the assistant reply
-6. returns the response payload
-
-### `routers/chat.py`
-Exposes `POST /api/chat`.
-
-### `routers/session.py`
-Exposes:
-
-- `GET /api/sessions`
-- `GET /api/sessions/{session_id}`
-
-### `routers/memory.py`
-Exposes:
-
-- `POST /api/memory`
-- `GET /api/memory`
-
-## How the frontend works
-
-### `index.html`
-Creates the full structure of the assistant UI:
-
-- sidebar for chat sessions
-- orb area
-- transcript panel
-- response panel
-- voice controls
-- text input composer
-
-### `styles.css`
-Defines the futuristic glassmorphism layout, glowing orb, state-based colors, responsive design, and chat session styling.
-
-### `app.js`
-Handles:
-
-- backend API calls
-- browser speech recognition
-- browser speech synthesis
-- session list rendering
-- new chat flow
-- orb state changes
-
-## Notes for development
-
-- If speech recognition is not available, use Chrome or Edge.
-- If `OPENAI_API_KEY` is missing, the backend replies in demo mode.
-- SQLite is used for local MVP development. You can swap to PostgreSQL later.
-
-## Next recommended upgrades
-
-- Streaming responses with WebSockets
-- User authentication
-- File uploads and summarization
-- Task/reminder tools
-- Calendar and email integrations
-- Long-term memory extraction
-- Mobile or desktop packaging
+Built by **Doris Agusiobo Echianu**, AI engineer and designer. [Portfolio](https://doris-agusiobo-echianu.vercel.app) · [LinkedIn](https://www.linkedin.com/in/doris-agusiobo-echianu-83571764)

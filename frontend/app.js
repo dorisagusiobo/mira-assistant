@@ -1,4 +1,5 @@
-const API_BASE = "http://127.0.0.1:8000";
+// The backend serves this page, so API calls go to the same origin.
+const API_BASE = "";
 
 const orb = document.getElementById("orb");
 const assistantState = document.getElementById("assistantState");
@@ -32,11 +33,11 @@ async function sendMessage(message) {
       body: JSON.stringify({ session_id: sessionId, message })
     });
 
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error("Failed to fetch response from backend");
+      throw new Error(data.detail || "Something went wrong while contacting the Mira backend.");
     }
 
-    const data = await response.json();
     sessionId = data.session_id;
     responseBox.textContent = data.assistant_message;
     await fetchSessions();
@@ -44,7 +45,8 @@ async function sendMessage(message) {
   } catch (error) {
     console.error(error);
     setState("error");
-    responseBox.textContent = "Something went wrong while contacting the Mira backend.";
+    responseBox.textContent =
+      error instanceof TypeError ? "Mira's server isn't reachable. Is the backend running?" : error.message;
   }
 }
 
